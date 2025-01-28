@@ -1,1 +1,1 @@
-# Calculating Fertility rates of Southern Resident Killer Whale through a Population Dynamics Model
+# Calculating Fertility rates of Southern Resident Killer Whales through a Integrative Population Dynamics model
