@@ -1,0 +1,86 @@
+Main.id,Stock.Long.Name,Location,Origin.Code.SHELTON,Ocean.Region.SHELTON,RMIS.Domain,RMIS.Region,RMIS.Basin
+1,Marked Central Valley Fall,central valley,SFB,SFB,California,SAFA,SAFAG
+2,Marked Columbia R Upriver Bright,columbia river upriver,URB,COL,Columbia River,UPCR,UPCRG
+3,Marked Columbia R Upriver Summer,columbia river upriver,URB,COL,Columbia River,UPCR,UPCRG
+4,Marked Cowlitz River Spring,cowlitz river,LCOL,COL,Columbia River,LOCR,COWL
+5,Marked CR Bonneville Pool Hatchery,columbia river bonneville,LCOL,COL,Columbia River,LOCR,LEWI
+6,Marked CR Oregon Hatchery Tule,columbia river oregon,MCOL,COL,Columbia River,CECR,CECR
+7,Marked CR Washington Hatchery Tule,columbia river washington,URB,COL,Columbia River,UPCR,UPCRG
+8,Marked Fraser River Early,fraser river,SGEO_S,SGEO,British Columbia,FRTH,LOFR
+9,Marked Fraser River Late,fraser river,SGEO_S,SGEO,British Columbia,FRTH,LOFR
+10,Marked Hoko River,hoko river,WAC,WAC,Washington,JUAN,LYHO
+11,Marked Hood Canal Fall Fing,hood canal,PUSO_S,PUSO,Washington,HOOD,HOODG
+12,Marked Hood Canal Fall Year,hood canal,PUSO_S,PUSO,Washington,HOOD,HOODG
+13,Marked JDF Tribs. Fall,juan de fuca tributaries,PUSO_N,PUSO,Washington,JUAN,JUANG
+14,Marked Lower Columbia River Wild,columbia river lower,LCOL,COL,Columbia River,LOCR,LOCRG
+15,Marked Lower Georgia Strait,lower georgia strait,SGEO_S,SGEO,British Columbia,GST,GSMS
+16,Marked Mid Oregon Coast Fall,oregon mid coast,COR,SOR,Oregon,ORGN,ORGNG
+17,Marked Mid PS Fall Fing,mid puget sound,PUSO_S,PUSO,Washington,MPS,MPSG
+18,Marked NF Nooksack Spr,nooksack river,PUSO_N,PUSO,Washington,NOWA,NOOK
+19,Marked Nooksack/Samish Fall,nooksack/samish river,PUSO_N,PUSO,Washington,NOWA,NOOK
+20,Marked Oregon North Coast Fall,oregon north coast,NOR,NOR,Oregon,NOOR,NOORG
+21,Marked Skagit Spring Year,skagit river,PUSO_N,PUSO,Washington,SKAG,SKAGG
+22,Marked Skagit Summer/Fall Fing,skagit river,PUSO_N,PUSO,Washington,SKAG,SKAGG
+23,Marked Snake River Fall,snake river,SNAK,COL,Columbia River,SNAK,SNAKG
+24,Marked Snohomish Fall Fing,snohomish river,PUSO_N,PUSO,Washington,NPS,SNOH
+25,Marked Snohomish Fall Year,snohomish river,PUSO_N,PUSO,Washington,NPS,SNOH
+26,Marked South Puget Sound Fall Fing,south puget sound,PUSO_S,PUSO,Washington,SPS,SPSG
+27,Marked South Puget Sound Fall Year,south puget sound,PUSO_S,PUSO,Washington,SPS,SPSG
+28,Marked Stillaguamish Fall Fing,stillaguamish river,PUSO_N,PUSO,Washington,NPS,STIL
+29,Marked Tulalip Fall Fing,tulalip river,PUSO_N,PUSO,Washington,NPS,SNOH
+30,Marked UW Accelerated,uw,PUSO_S,PUSO,Washington,MPS,LAKW
+31,Marked WA North Coast Fall,washington north coast,WAC,WAC,Washington,NWC,NWCG
+32,Marked WCVI Total Fall,wcvi,SWVI,WCVI,British Columbia,WCVI,SWVI
+33,Marked White River Spring Fing,white river,PUSO_S,PUSO,Washington,MPS,PUYA
+34,Marked White River Spring Year,white river,PUSO_S,PUSO,Washington,MPS,PUYA
+35,Marked Willamette River Spring,willamette river,LCOL,COL,Columbia River,LOCR,WILL
+36,Marked Willapa Bay,willapa bay,LCOL,COL,Washington,WILP,WILPG
+37,UnMarked Central Valley Fall,central valley,SFB,SFB,California,SAFA,SAFAG
+38,UnMarked Columbia R Upriver Bright,columbia river upriver,URB,COL,Columbia River,UPCR,UPCRG
+39,UnMarked Columbia R Upriver Summer,columbia river upriver,URB,COL,Columbia River,UPCR,UPCRG
+40,UnMarked Cowlitz River Spring,cowlitz river,LCOL,COL,Columbia River,LOCR,COWL
+41,UnMarked CR Bonneville Pool Hatchery,columbia river bonneville,LCOL,COL,Columbia River,LOCR,LEWI
+42,UnMarked CR Oregon Hatchery Tule,columbia river oregon,MCOL,COL,Columbia River,CECR,CECR
+43,UnMarked CR Washington Hatchery Tule,columbia river washington,URB,COL,Columbia River,UPCR,UPCRG
+44,UnMarked Fraser River Early,fraser river,SGEO_S,SGEO,British Columbia,FRTH,LOFR
+45,UnMarked Fraser River Late,fraser river,SGEO_S,SGEO,British Columbia,FRTH,LOFR
+46,UnMarked Hoko River,hoko river,WAC,WAC,Washington,JUAN,LYHO
+47,UnMarked Hood Canal Fall Fing,hood canal,PUSO_S,PUSO,Washington,HOOD,HOODG
+48,UnMarked Hood Canal Fall Year,hood canal,PUSO_S,PUSO,Washington,HOOD,HOODG
+49,UnMarked JDF Tribs. Fall,juan de fuca tributaries,PUSO_N,PUSO,Washington,JUAN,JUANG
+50,UnMarked Lower Columbia Naturals,columbia river lower,LCOL,COL,Columbia River,LOCR,LOCRG
+51,UnMarked Lower Columbia River Wild,columbia river lower,LCOL,COL,Columbia River,LOCR,LOCRG
+52,UnMarked Lower Georgia Strait,lower georgia strait,SGEO_S,SGEO,British Columbia,GST,GSMS
+53,UnMarked Mid Oregon Coast Fall,oregon mid coast,COR,SOR,Oregon,ORGN,ORGNG
+54,UnMarked Mid PS Fall Fing,mid puget sound,PUSO_S,PUSO,Washington,MPS,MPSG
+55,UnMarked NF Nooksack Spr,nooksack river,PUSO_N,PUSO,Washington,NOWA,NOOK
+56,UnMarked Nooksack/Samish Fall,nooksack/samish river,PUSO_N,PUSO,Washington,NOWA,NOOK
+57,UnMarked Oregon North Coast Fall,oregon north coast,NOR,NOR,Oregon,NOOR,NOORG
+58,UnMarked SF Nooksack Spr,nooksack river,PUSO_N,PUSO,Washington,NOWA,NOOK
+59,UnMarked Skagit Spring Year,skagit river,PUSO_N,PUSO,Washington,SKAG,SKAGG
+60,UnMarked Skagit Summer/Fall Fing,skagit river,PUSO_N,PUSO,Washington,SKAG,SKAGG
+61,UnMarked Skagit Summer/Fall Year,skagit river,PUSO_N,PUSO,Washington,SKAG,SKAGG
+62,UnMarked Snake River Fall,snake river,SNAK,COL,Columbia River,SNAK,SNAKG
+63,UnMarked Snohomish Fall Fing,snohomish river,PUSO_N,PUSO,Washington,NPS,SNOH
+64,UnMarked Snohomish Fall Year,snohomish river,PUSO_N,PUSO,Washington,NPS,SNOH
+65,UnMarked South Puget Sound Fall Fing,south puget sound,PUSO_S,PUSO,Washington,SPS,SPSG
+66,UnMarked South Puget Sound Fall Year,south puget sound,PUSO_S,PUSO,Washington,SPS,SPSG
+67,UnMarked Stillaguamish Fall Fing,stillaguamish river,PUSO_N,PUSO,Washington,NPS,STIL
+68,UnMarked Tulalip Fall Fing,tulalip river,PUSO_N,PUSO,Washington,NPS,SNOH
+69,UnMarked UW Accelerated,uw,PUSO_S,PUSO,Washington,MPS,LAKW
+70,UnMarked WA North Coast Fall,washington north coast,WAC,WAC,Washington,NWC,NWCG
+71,UnMarked WCVI Total Fall,wcvi,SWVI,WCVI,British Columbia,WCVI,SWVI
+72,UnMarked White River Spring Fing,white river,PUSO_S,PUSO,Washington,MPS,PUYA
+73,UnMarked White River Spring Year,white river,PUSO_S,PUSO,Washington,MPS,PUYA
+74,UnMarked Willamette River Spring,willamette river,LCOL,COL,Columbia River,LOCR,WILL
+75,UnMarked Willapa Bay,willapa bay,LCOL,COL,Washington,WILP,WILPG
+76,Marked Nooksack Spr Hatchery,nooksack river,PUSO_N,PUSO,Washington,NOWA,NOOK
+77,Marked Skagit Summer/Fall Year,skagit river,PUSO_N,PUSO,Washington,SKAG,SKAGG
+78,UnMarked Nooksack Spr Hatchery,nooksack river,PUSO_N,PUSO,Washington,NOWA,NOOK
+79,UnMarked Nooksack Spr Natural,nooksack river,PUSO_N,PUSO,Washington,NOWA,NOOK
+80,Marked SF Nooksack Spr,nooksack river,PUSO_N,PUSO,Washington,NOWA,NOOK
+81,Marked Lower Columbia Naturals,columbia river lower,LCOL,COL,Columbia River,LOCR,LOCRG
+,,,WAC,WAC,Washington,GREY,GREYG
+,,,CBC,CBC,British Columbia,JNST,JNSTG
+,,,NCA,NCA,California,KLTR,KLTRG
+,,,SOR,SOR,Oregon,SOOR,SOORG
