@@ -63,8 +63,6 @@ print(NA_size_at_age)
 
 All regions have at least one missing value at 'age-5', and only the 'GRAY' region has missing values at ages 1 and 5. Since the FRAM abundance database does not contain information for age 1, the missing values at 'age-1' will not be relevant in the next calculations.
 
-We are assuming that *that ocean-5s are the same size as ocean-4 fish. The image from the supplement of our [2018 Fish and Fisheries paper](https://onlinelibrary.wiley.com/doi/full/10.1111/faf.12272) shows that while ocean-5s are larger the difference is relatively small and has decreased over time to a point where ocean-4s and ocean-5s are pretty much the same length -- these are coast-wide averages and differences will vary by population, but we could use it to justify such an assumption. We would introduce a small bias in those lengths (\<4% percent based on where we do have data), but that might not matter much considering the low proportions of ocean-5s (I'd be surprised if any of the populations have more than 1-2% ocean-5s returning)* (Jan)
-
 But before filling the NAs, let's see how the data looks so far.
 
 ```{r prod size pred, echo=FALSE, warning=FALSE, message=FALSE, fig.width=12, fig.height=3}
@@ -81,29 +79,63 @@ ggplot(gam_predictions)+
   theme_light()
 
 ```
-To fill the NAs, *I tackled this issue based on two conditions:* 
+To fill the NAs, **I tackled this issue based on two assumptions:** 
 
-*1)* If there was data available for age 5, I kept the 'reference means' and the 'rel_pred' constant for the previous years relative to the last year with information.
+**1)** If there was data available for age 5, I kept the 'fitted lengths', 'se fitted lengths', 'reference means' and "rel_pred" constant for the previous years relative to the last year with information.
 
-*2)* For the years for age 5 without the 'reference means' and "rel_pred", the values were taken relative to age 4.
+**2)** For the years for age 5 without the 'fitted lengths', 'se fitted lengths', 'reference means' and "rel_pred", the values were taken relative to age 4.
 
-```{r fill NAs}
-
+```{r fill NAs, warning=FALSE, message=FALSE, fig.width=12, fig.height=3}
 full_gam_predictions <- check.grid%>%
-  left_join(gam_predictions, by = c("region","brood_year","ocean_age"))
+  left_join(gam_predictions, by = c("region","brood_year","ocean_age"))%>%
+  group_by(region, ocean_age)%>%
+  arrange(region,ocean_age)%>%
+  fill(fit, se.fit, ref_mean, rel_pred, .direction = 'down')%>% #Fill NAs under assumption 1
+  ungroup()%>%
+  group_by(region, brood_year)%>%
+  arrange(region,brood_year)%>%
+  fill(fit, se.fit, ref_mean, rel_pred, .direction = 'down')%>% #Fill NAs under assumption 2
+  ungroup()
 
+avg_size_at_year <- full_gam_predictions%>%
+  group_by(ocean_age,brood_year)%>%
+  summarise(avg.size = mean(fit, na.rm = TRUE))%>%
+  ungroup()
+```
 
+*Chinook salmon size over brood year  - Each line is a region and color indicates ocean age*
+```{r fill NAs plot 1, echo=FALSE, warning=FALSE, message=FALSE, fig.width=4, fig.height=6}
+ggplot(full_gam_predictions, aes(x = brood_year, y = fit, color = ocean_age, group = interaction(region, ocean_age)))+
+  geom_line(alpha = 0.5)+
+  scale_color_viridis_c(option = 'plasma', direction = -1)+
+  labs(x = 'Brood year', y = 'Length (cm)')+
+  theme_light()
+```
 
+*Chinook salmon size changes divided by ocean age - Color indicates region and black line is the mean size trend for each age*
+```{r fill NAs plot 2, echo=FALSE, warning=FALSE, message=FALSE, fig.width=12, fig.height=3}
+ggplot(full_gam_predictions)+
+  geom_line(mapping = aes(x = brood_year, y = fit, color = region))+
+  geom_line(mapping = aes(x = brood_year, y = avg.size, group = ocean_age), data = avg_size_at_year, color = "black", size = 1)+
+  facet_wrap(~ocean_age,nrow = 1,ncol = 5, scales = "free")+
+  labs(x = "Brood year", y = "Length (mm)")+
+  theme_light()
+```
 
+*Size changes over brood year for each region - Color indicates ocean age*
+```{r fill NAs plot 3, echo=FALSE, warning=FALSE, message=FALSE, fig.width=12, fig.height=6}
+fit_by_regions <-ggplot(full_gam_predictions)+
+  geom_line(mapping = aes(x = brood_year, y = fit, color = as.factor(ocean_age)))+
+  facet_wrap(~region,nrow = 3,ncol = 7, scales = "free")+
+  labs(x = "Brood year", y = "Length (mm)")+
+  theme_minimal()
 
+fit_by_regions
+```
 
-
-
-
-
-
-
-
+```{r, echo = FALSE}
+knitr::knit_exit()
+```
 
 ### Lipid ranking and Length-Lipid calculation
 
