@@ -1,7 +1,7 @@
 ---
-title: "Length to Lipids conversion"
+title: "Length to Lipids conversion.V2"
 author: "P. Santiago Domínguez-Sánchez"
-date: "2024"
+date: "2025"
 output: html_document
 ---
 
@@ -13,48 +13,45 @@ library(readr)
 library(kableExtra)
 library(zoo)
 library(vctrs)
+library(here)
 ```
 
 ### Calculating lengths at 'RMIS region - Brood year - Age' level
 
 ```{r data sets}
-length_ref_val <- read_xlsx("GAM_reference_values.xlsx", sheet = 1)
-length_ref_val <- length_ref_val %>% distinct(region,age, .keep_all = TRUE)
+length_ref_val <- read_xlsx(here("R","data","GAM_reference_values_v2.xlsx"))
 head(length_ref_val)
 
-gam_predictions  <- read_xlsx("GAM_predictions.xlsx")
+gam_predictions  <- read_xlsx(here("R","data","GAM_predictions_v2.xlsx"))
 head(gam_predictions)
 
-size_at_age <- left_join(gam_predictions,length_ref_val, by = c("RMIS_region" = "region", "ocen_age" = "age"))
-size_at_age$pred.avg.length <- (size_at_age$rel_pred*(size_at_age$ref_mean/100)) + size_at_age$ref_mean
-head(size_at_age)
+colnames(gam_predictions)[2:3] <- c("ocean_age","brood_year")
 
 ```
 
 ### Size at age and region
 
 ```{r wider table, echo = FALSE}
-w_size_at_age <- size_at_age%>%select(1:3,6)%>%pivot_wider(names_from = ocen_age, values_from = pred.avg.length)
+w_size_at_age <- gam_predictions%>%select(1:4)%>%pivot_wider(names_from = ocean_age, values_from = fit)
 
-w_size_at_age[27:37,]%>%
+w_size_at_age[29:39,]%>%
   mutate_all(~ ifelse(is.na(.), cell_spec("NA", "html", background = "red"), .)) %>%
   kable(escape = FALSE, format = "html") %>%
   kable_styling(full_width = F)
 
 ```
 
-In this case, the NAs belonging to the CECR 2008-2010 and FRTH 1977 - 1979 at age 5 are due to the 'rel_pred' and 'reference size' value being missing at this age.
+In this case, the NAs belonging to the CECR 2008-2010 and FRTH 1980 - 1987 at age 5 are due to the 'rel_pred' and 'reference size' value being missing at this age.
 
 Let's check where the NAs are
 
 ```{r check NAs, echo = FALSE, warning=FALSE, message=FALSE}
-check.grid <- expand.grid(RMIS_region = unique(size_at_age$RMIS_region), brood_year = unique(size_at_age$brood_year), ocen_age = unique(size_at_age$ocen_age))
+check.grid <- expand.grid(region = unique(gam_predictions$region), brood_year = unique(gam_predictions$brood_year), ocean_age = unique(gam_predictions$ocean_age))
 
-NA_size_at_age <- size_at_age%>%
-  full_join(check.grid,size_at_age, by = c("RMIS_region","brood_year","ocen_age"))%>%
-  select(-c(4,5))%>%
-  filter(is.na(pred.avg.length))%>%
-  group_by(RMIS_region,ocen_age)%>%
+NA_size_at_age <- gam_predictions%>%
+  full_join(check.grid,gam_predictions, by = c("region","brood_year","ocean_age"))%>%
+  filter(is.na(fit))%>%
+  group_by(region,ocean_age)%>%
   summarise()
 
 ```
@@ -66,37 +63,47 @@ print(NA_size_at_age)
 
 All regions have at least one missing value at 'age-5', and only the 'GRAY' region has missing values at ages 1 and 5. Since the FRAM abundance database does not contain information for age 1, the missing values at 'age-1' will not be relevant in the next calculations.
 
-The 'region-brood year-age-4' predicted average lengths were used to fill the NAs at 'age-5' respectively. **However, this was not the best way to do so, as you will see later, therefore I needed to fill the gaps on a different way that will be explained below, thus keep reading :)**
-
 We are assuming that *that ocean-5s are the same size as ocean-4 fish. The image from the supplement of our [2018 Fish and Fisheries paper](https://onlinelibrary.wiley.com/doi/full/10.1111/faf.12272) shows that while ocean-5s are larger the difference is relatively small and has decreased over time to a point where ocean-4s and ocean-5s are pretty much the same length -- these are coast-wide averages and differences will vary by population, but we could use it to justify such an assumption. We would introduce a small bias in those lengths (\<4% percent based on where we do have data), but that might not matter much considering the low proportions of ocean-5s (I'd be surprised if any of the populations have more than 1-2% ocean-5s returning)* (Jan)
 
-```{r fig.align='center', out.width='200px', echo=FALSE}
-knitr::include_graphics("~/Library/CloudStorage/Box-Box/KW_PopulationDynamics/Plots/FigS1_Ohlberger2018.png")
-```
-
-```{r adding rel_pred, warning=FALSE, message=FALSE}
-full_size_at_age <- size_at_age%>%
-  full_join(check.grid,size_at_age, by = c("RMIS_region","brood_year","ocen_age"))%>%
-  group_by(RMIS_region,brood_year)%>%
-  mutate(pred.avg.length.fixed = if_else(is.na(pred.avg.length) & ocen_age == 5, pred.avg.length[ocen_age == 4], pred.avg.length, missing = pred.avg.length))%>%
-   ungroup()
-```
+But before filling the NAs, let's see how the data looks so far.
 
 ```{r prod size pred, echo=FALSE, warning=FALSE, message=FALSE, fig.width=12, fig.height=3}
-avg_size_at_year <- full_size_at_age%>%
-  group_by(ocen_age,brood_year)%>%
-  summarise(avg.size = mean(pred.avg.length.fixed, na.rm = TRUE))%>%
+avg_size_at_year <- gam_predictions%>%
+  group_by(ocean_age,brood_year)%>%
+  summarise(avg.size = mean(fit, na.rm = TRUE))%>%
   ungroup()
 
-ggplot(full_size_at_age)+
-  geom_line(mapping = aes(x = brood_year, y = pred.avg.length.fixed, color = RMIS_region))+
-  geom_line(mapping = aes(x = brood_year, y = avg.size, group = ocen_age), data = avg_size_at_year, color = "black", size = 1)+
-  facet_wrap(~ocen_age,nrow = 1,ncol = 5, scales = "free")+
+ggplot(gam_predictions)+
+  geom_line(mapping = aes(x = brood_year, y = fit, color = region))+
+  geom_line(mapping = aes(x = brood_year, y = avg.size, group = ocean_age), data = avg_size_at_year, color = "black", size = 1)+
+  facet_wrap(~ocean_age,nrow = 1,ncol = 5, scales = "free")+
   labs(x = "Brood year", y = "Length (mm)")+
   theme_light()
 
-colnames(full_size_at_age)[c(1,2)] <- c("RMIS.Region","Age")
 ```
+To fill the NAs, *I tackled this issue based on two conditions:* 
+
+*1)* If there was data available for age 5, I kept the 'reference means' and the 'rel_pred' constant for the previous years relative to the last year with information.
+
+*2)* For the years for age 5 without the 'reference means' and "rel_pred", the values were taken relative to age 4.
+
+```{r fill NAs}
+
+full_gam_predictions <- check.grid%>%
+  left_join(gam_predictions, by = c("region","brood_year","ocean_age"))
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ### Lipid ranking and Length-Lipid calculation
 
@@ -307,7 +314,6 @@ ggplot(lipids.full, aes(x= as.numeric(cohort), y = lipid_content, group = intera
 
 
 ```
-___
 
 Up to this part, I realized that for age 5 the 'lipid_content' suddenly goes up which is odd. This happened due to added lipid content from age 4 to NAs at age 5.
 
