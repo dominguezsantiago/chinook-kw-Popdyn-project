@@ -136,7 +136,7 @@ fit_by_regions
 ```{r, echo = FALSE}
 knitr::knit_exit()
 ```
-
+  
 ### Lipid ranking and Length-Lipid calculation
 
 I manually organized this database in Excel. [O'neill et al. 2014](https://www.int-res.com/articles/esr_oa/n025p265.pdf), calculated the lipid tier for each stock at the FRAM stock level, and [Ohlberger et al. 2018](https://onlinelibrary.wiley.com/doi/full/10.1111/faf.12272) estimated the salmon stock lengths at the RMIS level. Hence, I matched FRAM stocks to RMIS regions by overlaying the FRAM stock origin river with the RMIS atlas.
