@@ -225,7 +225,7 @@ stock.missing.fw.age <- stock.missing.fw.age %>%
 
 #Add the new info to the abundance database
 stock_abundance <- stock_abundance%>%
-  left_join(stock.missing.fw.age, by = "StockLongName") %>%  # Unimos las tablas por StockLongName
+  left_join(stock.missing.fw.age, by = "StockLongName") %>%  # Link tables by StockLongName
   mutate(Freshwater.age = if_else(is.na(Freshwater.age.x), Freshwater.age.y, Freshwater.age.x))%>% 
   select(-Freshwater.age.y, -Freshwater.age.x)
 
@@ -267,6 +267,7 @@ stock_abundance <- temp %>%
 
 rm(temp)
 ```
+
 Since the abundance data span up to 2020, the size estimates from 2011 to 2017 (Brood year) are assumed to remain constant after 2010 which is the last year with size estimations. An example of this is shown in the plot below:
 ```{r filling gaps, fig.width=12, fig.height=24}
 
@@ -279,10 +280,11 @@ stock_abundance_full <-stock_abundance%>%
 
 ggplot(stock_abundance_full[stock_abundance_full$Season.run == '.Spr',], aes(x = Year.run, y = fit, color = as.factor(Age)))+
   geom_line()+
-  facet_wrap(~StockLongName, ncol = 4)
+  facet_wrap(~StockLongName, ncol = 4)+
+  theme_minimal()
 ```
 
-###Calculate lipid content
+### Calculate lipid content
 
 Three lipid indexes were calculated:
 
@@ -290,9 +292,9 @@ Three lipid indexes were calculated:
 
 `lipid_content_t` refers to lipids calculated from the reference mean lengths (`ref_mean`).
 
-`lipid_content_c` refers to lipids calculated assuming that the lengths of the fish have not changed from the first brood year **1980** (`contant_length`).
+`lipid_content_c` refers to lipids calculated assuming that the lengths of the fish have not changed relative to the first brood year (`contant_length`).
 
-The indexes were calculated according to the lipid ranking and the lenght-lipid relationship parameters found in _O'neill et al., 2014_:
+The indexes were calculated according to the lipid ranking and the length-lipid relationship parameters found in _O'neill et al., 2014_:
 
 For 'high´lipid ranking $$\text{kcal}^{-1} = 1.8034e^{-05}*(\text{length})^{3.0796}$$
 For 'medium' lipid ranking $$\text{kcal}^{-1} = 1.1051e^{-05}*(\text{length})^{3.122}$$
@@ -332,15 +334,20 @@ stock_abundance_full <- stock_abundance_full%>%
 
 ```
 
-```{r total lipid content contant vs fit plot, fig.width=12, fig.height=36}
+The following plot shows the comparison between the lipid content calculated from the predicted ( _solid line_ ) and the constant lengths ( _dashed line_ ) over time. Some lines appear cut because the size estimates were linked based on the availability of abundance data over time.
 
+```{r total lipid content contant vs fit plot, fig.width=12, fig.height=36}
 ggplot(stock_abundance_full[stock_abundance_full$Season.run == '.Spr' & stock_abundance_full$Age >3 ,],aes(x=Year.run, color = as.factor(Age)))+
   geom_line(aes(y=lipid_content_f), linetype  = "solid", size =0.7)+
   geom_line(aes(y=lipid_content_c), linetype = "dashed", size=0.7)+
   theme_minimal()+
   labs(title = "Predicted and Constant (Red) lipid content over time")+
   facet_wrap(~StockLongName, ncol = 5)
+```
 
+The plot shows the Total_lipid_content `predicted` (Solid line) and `constant` (Dashed line) over time for the different FRAM stocks. Each stock lipid content includes the Marked and UnMarked salmon abundance.
+
+```{r total lipid content contant over time, fig.width=12, fig.height=36}
 temp <- stock_abundance_full%>%
   group_by(StockName, Season.run, Year.run, Age)%>%
   summarise(sum_total_lipid_content_f = sum(total_lipid_content_f),
@@ -353,471 +360,86 @@ ggplot(temp[temp$Season.run == '.Spr' & temp$Age >3,], aes (x = Year.run, color 
   geom_line(aes( y = sum_total_lipid_content_c), linetype = 'dashed', size = 0.7)+
   theme_minimal()+
   facet_wrap(~StockName, ncol = 3, scales = 'free')
-
-```
-
-```{r end knit, echo = FALSE}
-knitr::knit_exit()
 ```
 
 
+The plot show the Total_lipid_content `predicted` (Solid line) and `constant` (Dashed line) over time for **all stocks** by season.
 
-Then, `full_size_at_age` is linked to `lipid_ranking_stock` by RMIS region.
-
-```{r x1, warning=FALSE}
-lipids <- left_join(full_gam_predictions,lipid_ranking_stock, by = c("region"= "RMIS.Region"))
-```
-
-```{r x2, echo=FALSE, warning=FALSE}
-lipids <- lipids%>%
-  select(1,Age=Age.x,brood_year,rel_pred,ref_mean,pred_length = pred.avg.length.fixed,FRAM.long.names,Lipid_ranking = `Lipid Ranking`)%>%
-  arrange(RMIS.Region,brood_year)
-
-colnames(lipids) <- tolower(names(lipids))
-
-#RMIS.regions without FRAM stocks assigned need to be removed because lipid ranking could not be assigned.
-lipids <- lipids%>%filter(!is.na(lipid_ranking))
-
-lipids%>%head()%>%kable(format = "html")%>%kable_styling()
-```
-
-Next, the lipid content is calculated according to the lipid ranking, as follows:
-
-For 'high´lipid ranking $$\text{kcal}^{-1} = 1.8034e^{-05}*(\text{length})^{3.0796}$$ For 'medium' lipid ranking $$\text{kcal}^{-1} = 1.1051e^{-05}*(\text{length})^{3.122}$$ For 'low' lipid ranking $$\text{kcal}^{-1} = 7.2074e^{-06}*(\text{length})^{3.143}$$
-
-The results are shown in the next table:
-
-```{r adding missing lipid ranking, echo=FALSE, fig.align='center', fig.width=20, fig.height=10, warning=FALSE}
-
-lipids <- lipids%>%
-  mutate(lipid_content = case_when(lipid_ranking == "high" ~ lipid_ranking_params$a[1]*pred_length^(lipid_ranking_params$b[1]),
-                                   lipid_ranking == "medium" ~ lipid_ranking_params$a[2]*pred_length^(lipid_ranking_params$b[2]),
-                                   lipid_ranking == "low" ~ lipid_ranking_params$a[3]*pred_length^(lipid_ranking_params$b[3])))
-
-lipids%>%head()%>%kable(format = "html")%>%kable_styling()
-
-
-ggplot(lipids, aes(brood_year, lipid_content,  group = interaction(fram.long.names,age,lipid_ranking), color=as.factor(age)))+
-  geom_line(linewidth = 1)+
-  facet_wrap(~rmis.region, nrow=3,ncol=6, scales = "free_y")+
-  theme_light()+
-  scale_x_continuous(breaks = seq(from = min(lipids$brood_year), to =max(lipids$brood_year),10))+
-  labs(title = "Lipid content over brood year",
-       x = "Brood year",
-       y= "Lipid content",
-       color = "Age")+
-  theme(panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank())
-```
-
-#AHHHHH
-
-```{r link lipids and fw age}
-lipids <- left_join(lipids,stock_fw_age, by = "fram.long.names")
-lipids[,c(1:3,7,9:11)]%>%head()%>%kable(format = "html")%>%kable_styling()
-
-lipids <- lipids%>%mutate(cohort = brood_year+freshwater.age+age)
-```
-
-### Filling missing values after 2016
-
-```{r add salmon abundances from FRAM databases, message=FALSE}
-stock_abundance <- read_csv(here("R","data","Cohort_Stock_Shelton_seasons.csv"))
-head(stock_abundance[,c(2,4,8,12,14,20)])
-```
-
-This plot shows the abundance data available for each FRAM stock by age (columns) and cohort (rows). As we can see, there are some gaps of data which were not filled since we assumed no fish were released.
-
-```{r add salmon abundances from FRAM databases2, fig.width=20, fig.height=30, echo=FALSE}
-ggplot(stock_abundance, aes(x=as.factor(Age), y = Year.run, fill = Species))+
-  geom_tile(color = "black")+
-  facet_wrap(~StockLongName, nrow = 10)+
-  labs(x= "Age", y = "Run year")+
-  theme_minimal()+
-  theme(axis.text.x = element_text(vjust = 0.5, hjust=1),
-        strip.text = element_text(size = 14),
-        axis.title = element_text(size=12),
-        axis.text = element_text(size=14),
-        legend.position = 'none')
-```
-
-```{r salmon abundance total, echo = FALSE, fig.width=20, fig.height=5}
-
-stock_abundance_total_spr <- stock_abundance%>%
-  filter(grepl('Fraser River',StockLongName) & Season.run == '.Spr')%>%
-  group_by(Year.run)%>%
-  summarise(total.abundance = sum(StartCohort))
-
-v <- ggplot(stock_abundance_total_spr, aes(x = Year.run, y = total.abundance/1000000))+
-  geom_line(size = 0.7, color = 'darkblue')+
-  ylim(x = c(0.5,3.0))+
-  labs(x = 'Year', y = 'Abundance')+
-  theme_minimal()
-#ggsave('/Users/domingpa/Library/CloudStorage/Box-Box/KW_PopulationDynamics/Plots/abundance_fraser_river_spr.svg',v, width = 14, height = 9, units = 'cm', device = 'svg')
-```
-
-The following figure displays the abundance over time for each FRAM stock in Spring and age (line color)
-```{r add salmon abundances from FRAM databases3, echo=FALSE, fig.width=20, fig.height=30, message=FALSE}
-ggplot(stock_abundance[stock_abundance$Season.run == '.Spr',], aes(x=Year.run, y = StartCohort, color = as.factor(Age), linetype = Season.run))+
-  geom_line(size = 0.7)+
-  facet_wrap(~StockLongName, nrow = 19, scales = "free_y")+
-  labs(x= "Year run", y = "Abundance")+
-  theme_minimal()+
-  theme(axis.text.x = element_text(vjust = 0.5, hjust=1),
-        strip.text = element_text(size = 14),
-        axis.title = element_text(size=12),
-        axis.text = element_text(size=14))
-
-
-```
-
-The 'lipids' database only have data for 'Marked' stocks, therefore, to ensure accurate abundance and energy content estimates, we assume that the marked and unmarked fish from the same tributaries have the same lipid content.
-
-```{r including marked and unmarked stocks to lipids db, echo=FALSE, fig.align='center', fig.width=20, fig.height=30}
-lipids2 <- lipids%>%mutate(fram.long.names = paste0("Un",fram.long.names))
-lipids.full <- rbind(lipids,lipids2)
-
-lipids.full <- lipids.full%>%arrange(rmis.region,brood_year)
-head(lipids.full,10)
-```
-
-The next plot shows the data available of lipids for each FRAM stock by age (columns) and the calculated cohorts (rows).
-The ages are lagged throughout time due to the 'cohort' calculation in the previous steps. 
-
-```{r including marked and unmarked stocks to lipids db2, echo=FALSE, fig.align='center', fig.width=20, fig.height=30}
-ggplot(lipids.full, aes(x=as.factor(age), y = cohort, fill = !is.na(lipid_content)))+
-  geom_tile(color = "black", fill = "#00BFC4")+
-  facet_wrap(~fram.long.names, nrow = 10)+
-  labs(x= "Age", y = "Run year")+
-  theme_minimal()+
-  theme(axis.text.x = element_text(vjust = 0.5, hjust=1),
-        strip.text = element_text(size = 14),
-        axis.title = element_text(size=12),
-        axis.text = element_text(size=14),
-        legend.position = 'none')
-```
-
-To fill the blank spaces, it was assumed that the lengths remained the same the last years for each stock/age.
-
-```{r filling gaps 2, warning=FALSE, fig.align='center', fig.width=20, fig.height=30, echo=FALSE}
-lipids.full.grid <- expand.grid(fram.long.names = unique(lipids.full$fram.long.names),
-                                cohort = c(min(lipids.full$cohort):2020),
-                                age = c(1:5))
-
-lipids.full <- left_join(lipids.full.grid,lipids.full[,-10], by= c("fram.long.names", "cohort", "age")) #remove the column 'season'
-  
-lipids.full <- lipids.full%>%
-  group_by(fram.long.names,age)%>%
-  arrange(cohort)%>%
-  fill(lipid_content, .direction = "down")%>%
+```{r total lipid content contant vs fit plot 2, fig.width=12, fig.height=6}
+temp <- stock_abundance_full%>%
+  group_by(Season.run, Year.run)%>%
+  summarise(sum_total_lipid_content_f = sum(total_lipid_content_f),
+            sum_total_lipid_content_c = sum(total_lipid_content_c))%>%
   ungroup()
 
-```
-
-
-The next plot shows the data available (blue) after filling the gaps from the last years. Notice that we are missing values before 1983, this is not important because the abundance data starts at 1988, thus, these values will be filtered out eventually.
-```{r filling gaps plot1 2, echo = FALSE, warning=FALSE,fig.align='center', fig.width=20, fig.height=30}
-ggplot(lipids.full, aes(x=as.factor(age), y = cohort, fill = !is.na(lipid_content)))+
-  geom_tile(color = "black")+
-  facet_wrap(~fram.long.names, nrow = 10)+
-  labs(x= "Age", y = "Run year")+
-  theme_minimal()+
-  theme(axis.text.x = element_text(vjust = 0.5, hjust=1),
-        strip.text = element_text(size = 14),
-        axis.title = element_text(size=12),
-        axis.text = element_text(size=14),
-        legend.position = 'none')
-```
-
-When we plot the lipid content for each FRAM stock by age we got the following:
-```{r filling gaps plot2 2, echo = FALSE, warning=FALSE,fig.align='center', fig.width=20, fig.height=30}
-ggplot(lipids.full, aes(x= as.numeric(cohort), y = lipid_content, group = interaction(fram.long.names,age), color = as.factor(age)))+
-  geom_line(size = 1)+
-  facet_wrap(~fram.long.names, nrow = 10)+
-  labs(x= "Age", y = "Cohort")+
-  theme_minimal()+
-  theme(axis.text.x = element_text(vjust = 0.5, hjust=1),
-        strip.text = element_text(size = 14),
-        axis.title = element_text(size=12),
-        axis.text = element_text(size=14))
-
-
-```
-
-Up to this part, I realized that for age 5 the 'lipid_content' suddenly goes up which is odd. This happened due to added lipid content from age 4 to NAs at age 5.
-
-*I tackled this issue based on two conditions:* 
-
-*1)* If there was data available for age 5, I kept the 'reference means' and the 'rel_pred' constant for the previous years relative to the last year with information.
-
-*2)* For the years for age 5 without the 'reference means' and "rel_pred", the values were taken relative to age 4.
-
-Then, both length and lipids were recalculated.
-
-```{r re calculating lengths and lipids, warning=FALSE,fig.align='center', fig.width=20, fig.height=30}
-x <- lipids.full%>%
-  filter(cohort >= 1988)%>%
-  group_by(fram.long.names, age)%>%
-  arrange(fram.long.names,age)%>%
-  fill(rel_pred,ref_mean,lipid_ranking,rmis.region,freshwater.age, .direction = 'down')%>%
-  mutate(pred_length_fixed = (rel_pred*(ref_mean/100)) + ref_mean)%>%#Recalculate the pred_length.
-  ungroup()%>%
-  group_by(fram.long.names,cohort)%>%
-  arrange(fram.long.names)%>%
-  mutate(pred_length_fixed2 = vctrs::vec_fill_missing(pred_length_fixed, direction = 'down'), #vctrs::vec_fill_missing does the same as fill but within mutate()
-         lipid_content_fixed = case_when(lipid_ranking == "high" ~ lipid_ranking_params$a[1]*pred_length_fixed2^(lipid_ranking_params$b[1]),
-                                   lipid_ranking == "medium" ~ lipid_ranking_params$a[2]*pred_length_fixed2^(lipid_ranking_params$b[2]),
-                                   lipid_ranking == "low" ~ lipid_ranking_params$a[3]*pred_length_fixed2^(lipid_ranking_params$b[3])))%>%
-  select(fram.long.names,rmis.region,cohort,brood_year,age,freshwater.age,rel_pred,ref_mean,pred_length = pred_length_fixed2,lipid_ranking,lipid_content = lipid_content_fixed)%>%
-  ungroup()
-
-
-
-y <- x%>%
-  group_by(fram.long.names)%>%
-  arrange(fram.long.names,cohort)%>%
-  fill(rel_pred)%>%
-  mutate(ref_mean_fill = vctrs::vec_fill_missing(ref_mean, direction = 'down'),
-         lipid_content_theoretical = case_when(lipid_ranking == "high" ~ lipid_ranking_params$a[1]*ref_mean_fill^(lipid_ranking_params$b[1]),
-                                   lipid_ranking == "medium" ~ lipid_ranking_params$a[2]*ref_mean_fill^(lipid_ranking_params$b[2]),
-                                   lipid_ranking == "low" ~ lipid_ranking_params$a[3]*ref_mean_fill^(lipid_ranking_params$b[3])))%>%
-  select(fram.long.names,rmis.region,cohort,brood_year,age,freshwater.age,rel_pred,ref_mean = ref_mean_fill,pred_length,lipid_ranking,lipid_content,lipid_content_theoretical)%>%
-  ungroup()
-
-lipids.full <-  y
-rm(x)
-```
-
-
-This way the lipid content are constant for the last years, as shown in the next plot:
-
-```{r re calculating lengths and lipids plot, echo=FALSE, warning=FALSE,fig.align='center', fig.width=20, fig.height=30}
-ggplot(lipids.full, aes(x= as.numeric(cohort), y = lipid_content, group = interaction(fram.long.names,age), color = as.factor(age)))+
-  geom_line(size = 1)+
-  facet_wrap(~fram.long.names, nrow = 10)+
-  labs(x= "Age", y = "Cohort")+
-  theme_minimal()+
-  theme(axis.text.x = element_text(vjust = 0.5, hjust=1),
-        axis.title = element_text(size=12),
-        axis.text = element_text(size=14))
-```
-____
-
-**Wrapping up**
-
-`lipid_content` refers to lipids calculated from predicted lengths, _which were previously calculated using Ohlberger's reference values and rates of change._
-
-`lipid_content_theoretical` refers to lipids calculated from the reference mean lengths.
-
-`lipid_content_constant` refers to lipids calculated assuming that the lengths of the fish have not changed from 1988.
-
-
-The following plots show the total lipid values for age 4 (solid line) and 5 (dashed line) under two assumptions: predicted lengths from Jan’s model (blue) and a constant length from 1988 (red).
-```{r add contant lengths, echo=FALSE, warning=FALSE,fig.align='center', fig.width=20, fig.height=30}
-constantlengthref <- lipids.full %>%
-  select(fram.long.names,rmis.region, age, pred_length)%>%
-  rename(constant_length = pred_length)%>%
-  distinct(fram.long.names,age, .keep_all = TRUE)
-
-x <- lipids.full%>%
-  left_join(constantlengthref)%>%
-  relocate(constant_length, .after = pred_length)%>%
-  relocate(lipid_content_theoretical, .after=constant_length)%>%
-  relocate(lipid_ranking, .after = constant_length)%>%
-  mutate(lipid_content_constant = case_when(lipid_ranking == "high" ~ lipid_ranking_params$a[1]*constant_length^(lipid_ranking_params$b[1]),
-                                   lipid_ranking == "medium" ~ lipid_ranking_params$a[2]*constant_length^(lipid_ranking_params$b[2]),
-                                   lipid_ranking == "low" ~ lipid_ranking_params$a[3]*constant_length^(lipid_ranking_params$b[3])))
-```
-
-Predict (Blue), and Constant (Red) lipid content over time for age 4 - 5
-```{r lipids calculated with constant and non constant lengths plot, echo=FALSE, warning=FALSE,fig.align='center', fig.width=20, fig.height=30}
-ggplot(x[x$age>3,], aes(x=cohort, linetype = as.factor(age)))+
-  geom_line(aes(y=lipid_content), color = "blue", size =0.8)+
-  geom_line(aes(y=lipid_content_constant), color = "red", size=0.8)+
-  facet_wrap(~fram.long.names, nrow = 19, scales = "free_y")+
-  theme_minimal()+
-  labs(title = "Predicted (Blue), and Constant (Red) lipid content over time for age 4 - 5")
- 
-lipids.full <- x
-rm(x)
-
-```
-```{r lipids calculated with constant and non constant lengths- all ages}
-lipids.full.all.ages <- lipids.full%>%
-  group_by(fram.long.names,cohort)%>%
-  summarise(lipid_content = sum(lipid_content),
-            lipid_content_constant = sum(lipid_content_constant))%>%
-  ungroup()
-```
-
-Predict (Blue), and Constant (Red) lipid content over time for ALL ages
-```{r lipids calculated with constant and non constant lengths- all ages - plot,  echo=FALSE, warning=FALSE,fig.align='center', fig.width=20, fig.height=30}
-
-ggplot(lipids.full.all.ages, aes(x=cohort))+
-  geom_line(aes(y=lipid_content), color = "blue", size =0.8)+
-  geom_line(aes(y=lipid_content_constant), color = "red", size=0.8)+
-  facet_wrap(~fram.long.names, nrow = 19, scales = "free_y")+
-  theme_minimal()
-
-```
-
-Interestingly, some stocks exhibited a much larger increase in size and consequently in lipids compared to the reference and constant values (e.g. Fraser river stocks)
-
-### Calculating the TOTAL energy content by Stock!
-
-Now the `lipids.full`database is linked to the FRAM's `stock_abundance` database.
-
-```{r join FRAM db, fig.align='center', fig.width=25, fig.height=50}
-lipids_abundance <- left_join(lipids.full, stock_abundance, by = c("fram.long.names" = "StockLongName","cohort"="Year.run", "age"="Age"))
-
-
-```
-
-The next heat map shows the data available in the FRAM `stock abundance` database. In this case, the data was broken down for each stock by 'Year.Season.run' (columns) and age (rows).
-```{r FRAM db inventory plot, echo=FALSE, fig.align='center', fig.width=25, fig.height=50}
-ggplot(stock_abundance, aes(x = Year.Season.run, y = as.factor(Age), fill = StartCohort))+
-  geom_tile()+
-  facet_wrap(~StockLongName, nrow = 19, scales = "free_y")+
+ggplot(temp, aes (x = Year.run, color = as.factor(Season.run)))+
+  geom_line(aes( y = sum_total_lipid_content_f), linetype = 'solid', size = 0.5)+
+  geom_line(aes( y = sum_total_lipid_content_c), linetype = 'dashed', size = 0.5)+
+  labs(y = 'Total lipid content', x = 'Year run', title = 'Total lipid content over time for each season  - Dashed: Constant, Solid: Predicted')+
   theme_minimal()
 ```
 
-The total energy content is now calculated by multiplying the energy content of each FRAM stock by the abundance of salmon (i.e. `StartCohort` variable) in each cohort, age and season.
+### Linking data to Shelton's stock regions
 
-```{r total energy content, warning=FALSE, message=FALSE, fig.align='center', fig.width=25, fig.height=50}
-x <- lipids_abundance%>%
-  filter(age != 1)%>% #Remove age 1 because there are not abundance values
-  mutate(total_lipid_theoretical = lipid_content_theoretical*StartCohort,
-         total_lipid_content = lipid_content*StartCohort,
-         total_lipid_constant = lipid_content_constant*StartCohort)%>%
-  relocate(total_lipid_theoretical,total_lipid_content,total_lipid_constant, .after = lipid_content_constant)
-
-lipids_abundance <- x
-rm(x)
-
-```
-
-The next plots show the difference between `total_lipid_content` (i.e. lipids calculated from predicted lengths) and `total_lipid_constant` (i.e. lipids calculated from constant length) by each FRAM stock for age 4 (red) and 5 only (blue) in the Spring run. Solid line and dashed line depicts the `total_lipid_content`and `total_lipid_constant` respectively. 
-
-```{r total energy content plot, echo=FALSE, warning=FALSE, message=FALSE, fig.align='center', fig.width=25, fig.height=50}
-u <- ggplot(lipids_abundance[lipids_abundance$fram.long.names == 'Marked Columbia R Upriver Summer' & lipids_abundance$Season.run == '.Spr' & !is.na(lipids_abundance$total_lipid_content) & lipids_abundance$age >3,], aes(x=cohort, color = as.factor(age)))+
-  geom_line(aes(y=total_lipid_content), size =0.8)+
-  geom_line(aes(y=total_lipid_constant), size=0.8, linetype = 'dashed')+
-  facet_wrap(~fram.long.names, nrow = 19, scales = "free_y")+
-  labs(x= "Year run", y = "Total lipid content")+
-  theme_minimal()+
-  theme(axis.text.x = element_text(vjust = 0.5, hjust=1),
-        strip.text = element_text(size = 18),
-        axis.title = element_text(size=18),
-        axis.text = element_text(size=18),
-        legend.text = element_text(size=18),
-        legend.title = element_text(size=18))
-
-u
-#ggsave('/Users/domingpa/Library/CloudStorage/Box-Box/KW_PopulationDynamics/Plots/abundance_lipids_fram_spr.svg',u, width = 30, height = 10, units = 'cm', device = 'svg')
-```
-
-```{r extract abundance for spring all ages, extract = FALSE}
-lipids_total_abundance_spr <- lipids_abundance%>%
-  filter(Season.run =='.Spr')%>%
-  group_by(cohort)%>%
-  summarise(total_lipid_content = sum(total_lipid_content, na.rm = TRUE),
-            total_lipid_constant = sum(total_lipid_constant, na.rm = TRUE))
-
-w <- ggplot(lipids_total_abundance_spr, aes(x = cohort))+
-  geom_line(aes(y = total_lipid_content/100000000000), color = 'blue')+
-  geom_line(aes(y = total_lipid_constant/100000000000), color = 'red')+
-  geom_vline(xintercept = 2007)+
-  labs(title = 'Lipid content over time - Spring abundance - all stocks - all ages. Blue = Predicted, Red = constant', x = 'Year run', y='Lipid content (x10^11)')+
-  #facet_wrap(~Season.run)+
-  theme_minimal()
-
-w
-```
-Finally, the Shelton stocks are linked to the FRAM stocks. The sum of lipids is calculated by _Shelton Stock/Cohort/Season/Age_ level, and the total energy content is shown in the following plots:
+Finally, the Shelton stocks are linked to the FRAM stocks. The sum of lipids is calculated by _Shelton Stock/Cohort/Season/Age_ level.
 
 ```{r add Shelton info, echo=FALSE, warning=FALSE, message=FALSE, fig.align='center', fig.width=25, fig.height=25}
 SheltonRef <- read.csv(here("R","data","FRAM Stock Names_v4.csv"))
-SheltonRef <- SheltonRef[,c(2,4:5)]
-colnames(SheltonRef)[1] <- "fram.long.names"
+SheltonRef <- SheltonRef[,c(2,4)]
 
-x <- left_join(lipids_abundance,SheltonRef)%>%
-  relocate(Origin.Code.SHELTON,Ocean.Region.SHELTON, .after = fram.long.names)
 
-colnames(x)[2] <- tolower(names(x)[2])
-colnames(x)[3] <- tolower(names(x)[3])
+stock_abundance_full <- stock_abundance_full%>%
+  left_join(SheltonRef, by = c('StockLongName' = 'Stock.Long.Name'))%>%
+  relocate(Origin.Shelton = Origin.Code.SHELTON,.after = RMIS.Region.fix)
 
-y <- x%>%
-  group_by(origin.code.shelton,cohort,Season.run,age)%>%
-  summarise(Shl_lipid_content_theoretical = sum(total_lipid_theoretical), #Shl = Shelton level
-            Shl_lipid_content = sum(total_lipid_content),
-            Shl_lipid_constant = sum(total_lipid_constant))%>%
-  ungroup()%>%
-  filter(!is.na(Season.run))
-```
-
-The following plot shows the Lipid content over time (Only Spring season) - Dashed lines: lipids calculated using constant length, Solid lines: lipids calculated using predicted length", x= "Year run", y = "Total lipid content".
-
-```{r Shelton info plot, echo=FALSE,warning=FALSE, message=FALSE, fig.align='center', fig.width=25, fig.height=25}
-ggplot(y[y$Season.run == '.Spr',], aes(x=cohort, color = as.factor(age)))+
-  geom_line(aes(y=Shl_lipid_content), size =0.8)+
-  geom_line(aes(y=Shl_lipid_constant), size=0.8, linetype = 'dashed')+
-  facet_wrap(~origin.code.shelton, nrow = 6, scales = "free_y")+
-  labs(title = "Lipid content over time - Only Fall season - Dashed lines: lipids calculated using constant length, Solid lines: lipids calculated using predicted length", x= "Year run", y = "Total lipid content")+
-  theme_minimal()+
-  theme(axis.text.x = element_text(vjust = 0.5, hjust=1),
-        strip.text = element_text(size = 18),
-        axis.title = element_text(size=18),
-        axis.text = element_text(size=18),
-        legend.text = element_text(size=18),
-        legend.title = element_text(size=18))
-
-```
-
-```{r shelton info all ages, echo=FALSE,warning=FALSE, message=FALSE, fig.align='center', fig.width=25, fig.height=25}
-z <- y %>%
-  group_by(origin.code.shelton,cohort,Season.run)%>%
-  summarise(Shl_lipid_content_theoretical = sum(Shl_lipid_content_theoretical), #Shl = Shelton level
-            Shl_lipid_content = sum(Shl_lipid_content),
-            Shl_lipid_constant = sum(Shl_lipid_constant))%>%
+temp <- stock_abundance_full%>%
+  group_by(Origin.Shelton,Year.run,Season.run,Age)%>%
+  summarise(Shl_total_lipid_content_f = sum(total_lipid_content_f), #Shl = Shelton level
+            Shl_total_lipid_content_c = sum(total_lipid_content_c),
+            Shl_total_lipid_content_t = sum(total_lipid_content_t))%>%
   ungroup()
 ```
 
-Lipid content over time - _all ages_ - Spring season - Dashed lines: lipids calculated using constant length, Solid lines: lipids calculated using predicted length
-```{r shelton info plot all ages, echo=FALSE,warning=FALSE, message=FALSE, fig.align='center', fig.width=25, fig.height=25}
-ggplot(z[z$Season.run == '.Spr',], aes(x=cohort))+
-  geom_line(aes(y=Shl_lipid_content), color = "#00BFC4", size =0.8)+
-  geom_line(aes(y=Shl_lipid_constant), size=0.8, linetype = 'dashed')+
-  facet_wrap(~origin.code.shelton, nrow = 6, scales = "free_y")+
-  labs(x= "Year run", y = "Total lipid content")+
-  theme_minimal()+
-  theme(axis.text.x = element_text(vjust = 0.5, hjust=1),
-        strip.text = element_text(size = 18),
-        axis.title = element_text(size=18),
-        axis.text = element_text(size=18),
-        legend.text = element_text(size=18),
-        legend.title = element_text(size=18))
+The following plot shows the Lipid content over time (Only Spring season) - Dashed lines: lipids calculated using constant length, Solid lines: lipids calculated using predicted length".
+
+```{r Shelton info plot, echo=FALSE,warning=FALSE, message=FALSE, fig.align='center', fig.width=25, fig.height=25}
+ggplot(temp[temp$Season.run == '.Spr',], aes(x=Year.run, color = as.factor(Age)))+
+  geom_line(aes(y=Shl_total_lipid_content_f), size =0.8)+
+  geom_line(aes(y=Shl_total_lipid_content_c), size=0.8, linetype = 'dashed')+
+  facet_wrap(~Origin.Shelton, nrow = 6, scales = "free_y")+
+  labs(title = "Lipid content over time - Spring season - Dashed lines: lipids calculated using constant length, Solid lines: lipids calculated using predicted length", x= "Year run", y = "Total lipid content")+
+  theme_minimal()#+
+  #theme(axis.text.x = element_text(vjust = 0.5, hjust=1),
+  #      strip.text = element_text(size = 18),
+  #      axis.title = element_text(size=18),
+  #      axis.text = element_text(size=18),
+  #      legend.text = element_text(size=18),
+  #      legend.title = element_text(size=18))
+
 ```
 
 ```{r export database only lipids for spring and calculate z-values, echo=FALSE, message=FALSE}
-library(janitor)
+#library(janitor)
 
-lipids.4.model <- z%>%
+lipids.4.model <- temp%>%
   filter(Season.run == '.Spr')%>%
-  select(origin.code.shelton,cohort,Shl_lipid_content)%>%
-  pivot_wider(names_from = origin.code.shelton,values_from = Shl_lipid_content)%>%
-  mutate(across(c(2:12), ~(.-mean(.))/sd(.)))%>% #Calculate Z-scores
-  clean_names(case = "title")
-  
-colnames(lipids.4.model)[5] <- 'Puso.N'
-colnames(lipids.4.model)[6] <- 'Puso.S'
-colnames(lipids.4.model)[8] <- 'Sgeo.S'
-colnames(lipids.4.model)[2:12] <- paste0('lip.',names(lipids.4.model[2:12]),'.z')
+  select(Origin.Shelton,Year.run,Shl_total_lipid_content_f, Shl_total_lipid_content_c)%>%
+  group_by(Origin.Shelton,Year.run)%>%
+  summarise(Shl_total_lipid_content_f = sum(Shl_total_lipid_content_f),
+            Shl_total_lipid_content_c = sum(Shl_total_lipid_content_c))%>%#NOTE: This calculation includes ALL ages (2-5)
+  ungroup()%>%
+  pivot_longer(cols = c(Shl_total_lipid_content_f,Shl_total_lipid_content_c), names_to = 'lipid_type', values_to = 'lipid_value')%>%
+  pivot_wider(names_from = c(Origin.Shelton,lipid_type),values_from = lipid_value)%>%
+  mutate(across(c(2:25), ~(.-mean(.))/sd(.)))%>% #Calculate Z-scores
+  rename_with( ~str_replace(.x, "_Shl_total_lipid_content", ""), .cols = -Year.run)
 
-#write.csv(lipids.4.model,'lipids_spring_shelton.csv')
+#save(lipids.4.model, file = here("R","output","lipids4model.rda"))
 
+#colnames(lipids.4.model)[5] <- 'Puso.N'
+#colnames(lipids.4.model)[6] <- 'Puso.S'
+#colnames(lipids.4.model)[8] <- 'Sgeo.S'
+#colnames(lipids.4.model)[2:12] <- paste0('lip.',names(lipids.4.model[2:12]),'.z')
 
-#COR no aparece entre los stocks finales, probablemente porque los stocks pertenecientes a este grupo no se encontraban en RMIS, por lo tanto
-#no se pudo hacer el match.
 ```
 
 
